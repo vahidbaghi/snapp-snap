@@ -353,6 +353,25 @@ map.on('click', function(e) {
 		}
 		updateCoordinatesDisplay();
 	}
+	// Function to get current location
+        function getCurrentLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const { latitude, longitude } = position.coords;
+                        map.setView([latitude, longitude], 15);
+                        L.marker([latitude, longitude], { draggable: false }).addTo(map)
+                            .bindPopup('You are here!').openPopup();
+                    },
+                    (error) => {
+                        alert('Unable to fetch location. Please check your browser settings.');
+                        console.error('Geolocation error:', error);
+                    }
+                );
+            } else {
+                alert('Geolocation is not supported by your browser.');
+            }
+        }
     </script>
 </body>
 </html>
