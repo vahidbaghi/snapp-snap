@@ -190,7 +190,6 @@
             }
         };
 
-        // Rest of your existing getPoints code...
         const response = await fetch('https://snapp-location.vbaghi.workers.dev/', {
             method: 'POST',
             headers: {
@@ -206,6 +205,16 @@
         // Sort data by price in ascending order
         const sortedData = data.sort((a, b) => (a.price || 0) - (b.price || 0));
 
+        // Create a map of prices to colors
+        const priceColorMap = new Map();
+        const colors = ['#FF0000', '#00FF00', '#0000FF', '#FF00FF', '#00FFFF', '#FFFF00', '#800080', '#008000', '#000080', '#808000'];
+        let colorIndex = 0;
+
+        // Pan to source location
+        if (source) {
+            map.setView(source.getLatLng(), map.getZoom());
+        }
+
         sortedData.forEach((item, index) => {
             if (!item.originalPoint) {
                 console.warn('Missing originalPoint in response item:', item);
@@ -216,9 +225,16 @@
             const lng = item.originalPoint.long;
             const price = item.price || 'N/A';
 
+            // Assign color based on price
+            if (!priceColorMap.has(price)) {
+                priceColorMap.set(price, colors[colorIndex % colors.length]);
+                colorIndex++;
+            }
+            const markerColor = priceColorMap.get(price);
+
             // Add marker to map with index as label
             const marker = L.marker([lat, lng], {
-                icon: createCustomIcon('green', index + 1)
+                icon: createCustomIcon(markerColor, index + 1)
             })
             .bindPopup(`Point ${index + 1}: Price: ${price.toLocaleString()} IRR`)
             .addTo(map);
