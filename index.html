@@ -79,6 +79,19 @@
         <div>Loading points...</div>
     </div>
 </div>
+	<div id="coordinates-info" style="margin: 20px 0;">
+    <table style="width: 100%; margin-bottom: 20px;">
+        <tr>
+            <th style="background-color: #f4f4f4; width: 50%;">Source Coordinates</th>
+            <th style="background-color: #f4f4f4; width: 50%;">Destination Coordinates</th>
+        </tr>
+        <tr>
+            <td id="source-coordinates" style="text-align: center; cursor: pointer;">-</td>
+            <td id="destination-coordinates" style="text-align: center; cursor: pointer;">-</td>
+        </tr>
+    </table>
+</div>
+
 
     <table id="pointsTable">
         <thead>
@@ -131,6 +144,31 @@
         return;
     }
 
+    // Update coordinates display
+    const sourceLat = source.getLatLng().lat.toFixed(6);
+    const sourceLng = source.getLatLng().lng.toFixed(6);
+    const targetLat = target.getLatLng().lat.toFixed(6);
+    const targetLng = target.getLatLng().lng.toFixed(6);
+
+    const sourceCoordElement = document.getElementById('source-coordinates');
+    const destCoordElement = document.getElementById('destination-coordinates');
+
+    sourceCoordElement.textContent = `${sourceLat}, ${sourceLng}`;
+    destCoordElement.textContent = `${targetLat}, ${targetLng}`;
+
+    // Add click-to-copy functionality
+    sourceCoordElement.addEventListener('click', () => {
+        navigator.clipboard.writeText(`${sourceLat}, ${sourceLng}`).then(() => {
+            alert('Source coordinates copied to clipboard!');
+        });
+    });
+
+    destCoordElement.addEventListener('click', () => {
+        navigator.clipboard.writeText(`${targetLat}, ${targetLng}`).then(() => {
+            alert('Destination coordinates copied to clipboard!');
+        });
+    });
+
     // Show loading spinner
     document.getElementById('loadingSpinner').style.display = 'block';
 
@@ -143,15 +181,16 @@
 
         const payload = {
             source: {
-                lat: source.getLatLng().lat,
-                long: source.getLatLng().lng
+                lat: sourceLat,
+                long: sourceLng
             },
             target: {
-                lat: target.getLatLng().lat,
-                long: target.getLatLng().lng
+                lat: targetLat,
+                long: targetLng
             }
         };
 
+        // Rest of your existing getPoints code...
         const response = await fetch('https://snapp-location.vbaghi.workers.dev/', {
             method: 'POST',
             headers: {
@@ -229,37 +268,91 @@
 }
 
         // Add click events to set source and target
-        map.on('click', function(e) {
-            if (!source) {
-                source = L.marker(e.latlng, { draggable: true }).addTo(map)
-                    .bindPopup('Source Point').openPopup();
-            } else if (!target) {
-                target = L.marker(e.latlng, { draggable: true }).addTo(map)
-                    .bindPopup('Target Point').openPopup();
-            } else {
-                alert('Source and target points are already set.');
-            }
+        // Modify your map click event handler like this:
+map.on('click', function(e) {
+    if (!source) {
+        source = L.marker(e.latlng, { draggable: true })
+            .addTo(map)
+            .bindPopup('Source Point')
+            .openPopup();
+        
+        // Update coordinates when marker is dragged
+        source.on('dragend', function() {
+            updateCoordinatesDisplay();
         });
+        // Update coordinates immediately when placed
+        updateCoordinatesDisplay();
+    } else if (!target) {
+        target = L.marker(e.latlng, { draggable: true })
+            .addTo(map)
+            .bindPopup('Target Point')
+            .openPopup();
+        
+        // Update coordinates when marker is dragged
+        target.on('dragend', function() {
+            updateCoordinatesDisplay();
+        });
+        // Update coordinates immediately when placed
+        updateCoordinatesDisplay();
+    } else {
+        alert('Source and target points are already set.');
+    }
+});
 
-        // Function to get current location
-        function getCurrentLocation() {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    (position) => {
-                        const { latitude, longitude } = position.coords;
-                        map.setView([latitude, longitude], 15);
-                        L.marker([latitude, longitude], { draggable: false }).addTo(map)
-                            .bindPopup('You are here!').openPopup();
-                    },
-                    (error) => {
-                        alert('Unable to fetch location. Please check your browser settings.');
-                        console.error('Geolocation error:', error);
-                    }
-                );
-            } else {
-                alert('Geolocation is not supported by your browser.');
-            }
-        }
+	// Add this function to update coordinates display
+	function updateCoordinatesDisplay() {
+		const sourceCoordElement = document.getElementById('source-coordinates');
+		const destCoordElement = document.getElementById('destination-coordinates');
+
+		if (source) {
+			const sourceLat = source.getLatLng().lat.toFixed(6);
+			const sourceLng = source.getLatLng().lng.toFixed(6);
+			sourceCoordElement.textContent = `${sourceLat}, ${sourceLng}`;
+			sourceCoordElement.style.cursor = 'pointer';
+			
+			// Add click-to-copy functionality
+			sourceCoordElement.onclick = () => {
+				navigator.clipboard.writeText(`${sourceLat}, ${sourceLng}`).then(() => {
+					alert('Source coordinates copied to clipboard!');
+				});
+			};
+		} else {
+			sourceCoordElement.textContent = '-';
+			sourceCoordElement.style.cursor = 'default';
+			sourceCoordElement.onclick = null;
+		}
+
+		if (target) {
+			const targetLat = target.getLatLng().lat.toFixed(6);
+			const targetLng = target.getLatLng().lng.toFixed(6);
+			destCoordElement.textContent = `${targetLat}, ${targetLng}`;
+			destCoordElement.style.cursor = 'pointer';
+			
+			// Add click-to-copy functionality
+			destCoordElement.onclick = () => {
+				navigator.clipboard.writeText(`${targetLat}, ${targetLng}`).then(() => {
+					alert('Destination coordinates copied to clipboard!');
+				});
+			};
+		} else {
+			destCoordElement.textContent = '-';
+			destCoordElement.style.cursor = 'default';
+			destCoordElement.onclick = null;
+		}
+	}
+
+	// Optionally, add a function to clear the markers if needed
+	function clearMarkers() {
+		if (source) {
+			map.removeLayer(source);
+			source = null;
+		}
+		if (target) {
+			map.removeLayer(target);
+			target = null;
+		}
+		updateCoordinatesDisplay();
+	}
     </script>
 </body>
 </html>
